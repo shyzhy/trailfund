@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FaArrowLeft, FaUserPlus, FaUserCheck, FaMapMarkerAlt, FaGraduationCap, FaBirthdayCake, FaBuilding, FaEdit, FaSave, FaTimes, FaKey, FaUserCog, FaLink, FaCamera } from 'react-icons/fa';
+import { useNavigate, useParams } from 'react-router-dom';
+import { FaArrowLeft, FaUserPlus, FaUserCheck, FaMapMarkerAlt, FaGraduationCap, FaBirthdayCake, FaBuilding, FaEdit, FaSave, FaTimes, FaKey, FaUserCog, FaLink, FaCamera, FaSignOutAlt } from 'react-icons/fa';
 import mockUsers from '../data/mockUsers';
 import BottomNav from '../components/BottomNav';
+import { API_BASE_URL } from '../config';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -12,12 +13,40 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState('posts');
   const [formData, setFormData] = useState({});
 
-  // Simulate fetching current user (ID 1 - Giselle)
+  const { id } = useParams();
+
+  // Fetch user data
   useEffect(() => {
-    const currentUser = mockUsers.find(u => u.id === 1);
-    setUser(currentUser);
-    setFormData(currentUser);
-  }, []);
+    const fetchUser = async () => {
+      try {
+        // If ID is provided in URL, use it. Otherwise try to get from localStorage (current user)
+        const userId = id || JSON.parse(localStorage.getItem('user'))?._id;
+
+        if (!userId) {
+          navigate('/login');
+          return;
+        }
+
+        // Fetch user details from API (we might need a specific endpoint for full profile)
+        // For now, we'll fetch all users and find the one (inefficient but works with current API)
+        // OR better: assume we have GET /api/users/:id. Let's check api.js first.
+        // Actually api.js only has GET /users. I should probably add GET /users/:id or filter client side.
+        // Let's filter client side for now as per current api.js
+        const response = await fetch(`${API_BASE_URL}/api/users`);
+        const users = await response.json();
+        const foundUser = users.find(u => u._id === userId);
+
+        if (foundUser) {
+          setUser(foundUser);
+          setFormData(foundUser);
+        }
+      } catch (err) {
+        console.error('Error fetching user:', err);
+      }
+    };
+
+    fetchUser();
+  }, [id, navigate]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -33,6 +62,11 @@ export default function Profile() {
   const handleCancel = () => {
     setFormData(user);
     setIsEditing(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    navigate('/login');
   };
 
   if (!user) return null;
@@ -155,7 +189,7 @@ export default function Profile() {
         <div style={{ marginBottom: 25 }}>
           <div style={{ position: 'relative', width: 110, height: 110, marginBottom: 15 }}>
             <img
-              src={user.avatar}
+              src={user.profile_picture || "/assets/giselle.jpg"}
               alt={user.name}
               style={{
                 width: '100%',
@@ -285,6 +319,7 @@ export default function Profile() {
               <SettingsItem icon={<FaKey />} label="Change Password" onClick={() => alert('Change Password Clicked')} />
               <SettingsItem icon={<FaUserCog />} label="Change Username" onClick={() => alert('Change Username Clicked')} />
               <SettingsItem icon={<FaLink />} label="Link USTEP Account" onClick={() => alert('Link USTEP Clicked')} />
+              <SettingsItem icon={<FaSignOutAlt />} label="Log Out" onClick={handleLogout} style={{ color: '#FF6B6B' }} />
             </div>
           </div>
         )}

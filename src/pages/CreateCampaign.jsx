@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaBullhorn, FaBuilding, FaMoneyBillWave, FaMapMarkerAlt, FaUser } from 'react-icons/fa';
 import Modal from '../components/Modal';
+import { API_BASE_URL } from '../config';
 
 export default function CreateCampaign() {
   const navigate = useNavigate();
@@ -37,7 +38,7 @@ export default function CreateCampaign() {
     setModal({ isOpen: true, type: 'pending', message: 'Submitting your campaign...' });
 
     try {
-      const response = await fetch('http://localhost:5000/api/campaigns', {
+      const response = await fetch(`${API_BASE_URL}/api/campaigns`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

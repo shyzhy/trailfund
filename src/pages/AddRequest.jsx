@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaMoneyBillWave, FaBox, FaMobileAlt, FaGift, FaHandsHelping, FaBook } from 'react-icons/fa';
 import Modal from '../components/Modal';
+import { API_BASE_URL } from '../config';
 
 export default function AddRequest() {
     const navigate = useNavigate();
@@ -43,7 +44,7 @@ export default function AddRequest() {
         setModal({ isOpen: true, type: 'pending', message: 'Submitting your request...' });
 
         try {
-            const response = await fetch('http://localhost:5000/api/requests', {
+            const response = await fetch(`${API_BASE_URL}/api/requests`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { FaUser, FaLock } from 'react-icons/fa';
+import { API_BASE_URL } from '../config';
 
 export default function Login() {
     const navigate = useNavigate();
@@ -15,7 +16,7 @@ export default function Login() {
         setIsLoading(true);
 
         try {
-            const response = await fetch('http://localhost:5000/api/login', {
+            const response = await fetch(`${API_BASE_URL}/api/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -180,6 +181,14 @@ export default function Login() {
                     }}>
                         Connect to USTEP Account
                     </button>
+                </div>
+
+                {/* Sign Up Link */}
+                <div style={{ marginTop: 20, textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>
+                    Don't have an account?{' '}
+                    <Link to="/signup" style={{ color: 'var(--accent-color)', fontWeight: 'bold', textDecoration: 'none' }}>
+                        Sign Up
+                    </Link>
                 </div>
             </div>
         </div>

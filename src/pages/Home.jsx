@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { FaSearch, FaSlidersH, FaBell, FaBars, FaCheck } from "react-icons/fa";
+import { API_BASE_URL } from '../config';
 
 import Sidebar from "../components/Sidebar";
 // Removed mock imports
@@ -26,9 +27,9 @@ export default function Home() {
     const fetchData = async () => {
       try {
         const [campaignsRes, usersRes, requestsRes] = await Promise.all([
-          fetch('http://localhost:5000/api/campaigns'),
-          fetch('http://localhost:5000/api/users'),
-          fetch('http://localhost:5000/api/requests')
+          fetch(`${API_BASE_URL}/api/campaigns`),
+          fetch(`${API_BASE_URL}/api/users`),
+          fetch(`${API_BASE_URL}/api/requests`)
         ]);
 
         const campaignsData = await campaignsRes.json();
@@ -120,7 +121,7 @@ export default function Home() {
         <FaBars size={24} color="white" onClick={(e) => { e.stopPropagation(); setIsSidebarOpen(true); }} style={{ cursor: 'pointer' }} />
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           <FaBell size={24} color="white" />
-          <Link to="/profile">
+          <Link to={currentUser ? '/profile' : '/login'}>
             <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.3)' }}>
               <img src={currentUser?.profile_picture || "/assets/giselle.jpg"} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
@@ -301,7 +302,7 @@ export default function Home() {
       {/* Top Requests */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ fontSize: 20, fontWeight: 'bold', margin: 0, color: 'white' }}>Top Requests</h2>
-        <Link to="/explore?tab=requests" style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}>
+        <Link to="/campaigns?tab=requests" style={{ color: 'rgba(255,255,255,0.8)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}>
           See All <span>→</span>
         </Link>
       </div>

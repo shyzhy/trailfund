@@ -1,6 +1,8 @@
 import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import UploadPhoto from "./pages/UploadPhoto";
 import Home from "./pages/Home";
 import Campaigns from "./pages/Campaigns";
 import CampaignDetail from "./pages/CampaignDetail";
@@ -12,12 +14,11 @@ import PostDetail from "./pages/PostDetail";
 import Profile from "./pages/Profile";
 import UserProfile from "./pages/UserProfile";
 import Splash from "./pages/Splash";
-import Welcome from "./pages/Welcome";
 import BottomNav from "./components/BottomNav";
 
 export default function App() {
   const location = useLocation();
-  const hideNavRoutes = ['/', '/welcome', '/login'];
+  const hideNavRoutes = ['/', '/login', '/signup', '/upload-photo'];
   const showNav = !hideNavRoutes.includes(location.pathname) && !location.pathname.startsWith('/community/post/');
 
   return (
@@ -25,8 +26,9 @@ export default function App() {
       <main className="main">
         <Routes>
           <Route path="/" element={<Splash />} />
-          <Route path="/welcome" element={<Welcome />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/upload-photo" element={<UploadPhoto />} />
           <Route path="/home" element={<Home />} />
           <Route path="/campaigns" element={<Campaigns />} />
           <Route path="/campaigns/:id" element={<CampaignDetail />} />

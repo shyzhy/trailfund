@@ -46,6 +46,61 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// Signup
+router.post('/signup', async (req, res) => {
+    const { username, password, email, name, age, college } = req.body;
+
+    try {
+        // Check if user already exists
+        const existingUser = await User.findOne({
+            $or: [{ username }, { email }]
+        });
+
+        if (existingUser) {
+            return res.status(400).json({ message: 'Username or Email already exists' });
+        }
+
+        const newUser = new User({
+            username,
+            password, // In a real app, hash this!
+            email,
+            name,
+            age,
+            college
+        });
+
+        const savedUser = await newUser.save();
+
+        // Return user info (excluding password)
+        const userResponse = savedUser.toObject();
+        delete userResponse.password;
+
+        res.status(201).json({ message: 'User created successfully', user: userResponse });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Update Profile Photo
+router.post('/users/:id/photo', async (req, res) => {
+    try {
+        const { profile_picture } = req.body;
+        const user = await User.findByIdAndUpdate(
+            req.params.id,
+            { profile_picture },
+            { new: true }
+        );
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json({ message: 'Profile photo updated', user });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 // --- CAMPAIGNS ---
 
 // Get all campaigns

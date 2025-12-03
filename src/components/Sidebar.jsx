@@ -6,9 +6,11 @@ export default function Sidebar({ isOpen, onClose }) {
     const navigate = useNavigate();
 
     const handleLogout = () => {
-        // Mock logout logic
-        navigate('/');
+        localStorage.removeItem('user');
+        navigate('/login');
     };
+
+    const user = JSON.parse(localStorage.getItem('user')) || {};
 
     const menuItems = [
         { icon: <FaUser />, label: 'User Profile', path: '/profile' },
@@ -60,10 +62,10 @@ export default function Sidebar({ isOpen, onClose }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 40 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden', border: '2px solid white' }}>
-                            <img src="/assets/giselle.jpg" alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img src={user.profile_picture || "/assets/giselle.jpg"} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
                         <div>
-                            <div style={{ color: 'white', fontWeight: 'bold' }}>Giselle</div>
+                            <div style={{ color: 'white', fontWeight: 'bold' }}>{user.name || user.username || 'Guest'}</div>
                             <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>View Profile</div>
                         </div>
                     </div>
@@ -73,7 +75,7 @@ export default function Sidebar({ isOpen, onClose }) {
                 </div>
 
                 {/* Menu Items */}
-                <div style={{ flex: 1 }}>
+                <div>
                     {menuItems.map((item, index) => (
                         <Link
                             key={index}

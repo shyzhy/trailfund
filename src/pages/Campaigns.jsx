@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FaArrowLeft, FaSearch, FaFilter } from "react-icons/fa";
 import BottomNav from "../components/BottomNav";
+import { API_BASE_URL } from '../config';
 
 export default function Campaigns() {
   const navigate = useNavigate();
@@ -18,10 +19,20 @@ export default function Campaigns() {
 
   useEffect(() => {
     // Fetch Campaigns
-    fetch('http://localhost:5000/api/campaigns')
+    fetch(`${API_BASE_URL}/api/campaigns`)
       .then(res => res.json())
-      .then(data => setCampaigns(data))
-      .catch(err => console.error('Error fetching campaigns:', err));
+      .then(data => {
+        if (Array.isArray(data)) {
+          setCampaigns(data);
+        } else {
+          console.error('API returned non-array:', data);
+          setCampaigns([]);
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching campaigns:', err);
+        setCampaigns([]);
+      });
 
     // Fetch Requests (Mock for now if API not ready, or fetch real)
     setRequests([
@@ -248,11 +259,11 @@ export default function Campaigns() {
 
                 <div style={{ marginBottom: 16 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-                    <span style={{ color: 'var(--accent-color)', fontWeight: 'bold' }}>₱{c.raised.toLocaleString()}</span>
-                    <span style={{ color: 'rgba(255,255,255,0.6)' }}>of ₱{c.goal.toLocaleString()}</span>
+                    <span style={{ color: 'var(--accent-color)', fontWeight: 'bold' }}>₱{(c.raised || 0).toLocaleString()}</span>
+                    <span style={{ color: 'rgba(255,255,255,0.6)' }}>of ₱{(c.goal || 0).toLocaleString()}</span>
                   </div>
                   <div style={{ width: '100%', height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 3 }}>
-                    <div style={{ width: `${(c.raised / c.goal) * 100}%`, height: '100%', background: 'var(--accent-color)', borderRadius: 3 }} />
+                    <div style={{ width: `${((c.raised || 0) / (c.goal || 1)) * 100}%`, height: '100%', background: 'var(--accent-color)', borderRadius: 3 }} />
                   </div>
                 </div>
 

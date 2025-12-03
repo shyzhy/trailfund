@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaUserPlus, FaUserCheck, FaMapMarkerAlt, FaGraduationCap, FaBirthdayCake, FaBuilding } from 'react-icons/fa';
 import mockUsers from '../data/mockUsers';
+import { API_BASE_URL } from '../config';
 
 export default function UserProfile() {
     const { id } = useParams();
@@ -10,8 +11,17 @@ export default function UserProfile() {
     const [activeTab, setActiveTab] = useState('posts');
 
     useEffect(() => {
-        const foundUser = mockUsers.find(u => u.id === parseInt(id));
-        setUser(foundUser);
+        const fetchUser = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/users`);
+                const users = await response.json();
+                const foundUser = users.find(u => u._id === id);
+                setUser(foundUser);
+            } catch (err) {
+                console.error('Error fetching user:', err);
+            }
+        };
+        fetchUser();
     }, [id]);
 
     if (!user) {
@@ -21,7 +31,6 @@ export default function UserProfile() {
     return (
         <div style={{ paddingBottom: 100, minHeight: '100vh', color: 'white', position: 'relative' }}>
 
-            {/* Header / Cover Area */}
             {/* Header / Cover Area */}
             <div style={{
                 height: '240px',
@@ -76,7 +85,7 @@ export default function UserProfile() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 20 }}>
                     <div style={{ position: 'relative' }}>
                         <img
-                            src={user.avatar}
+                            src={user.profile_picture || "/assets/giselle.jpg"}
                             alt={user.name}
                             style={{
                                 width: 110,
@@ -128,7 +137,6 @@ export default function UserProfile() {
                 </div>
 
                 {/* Details Cards */}
-                {/* Details Cards */}
                 <div className="glass-card" style={{
                     padding: 20,
                     marginBottom: 30,
@@ -159,7 +167,6 @@ export default function UserProfile() {
                     </div>
                 </div>
 
-                {/* Tabs */}
                 {/* Tabs */}
                 <div style={{
                     display: 'flex',
@@ -210,7 +217,7 @@ export default function UserProfile() {
                                 <div key={camp.id} className="glass-card" style={{ padding: 15 }}>
                                     <h4 style={{ margin: '0 0 5px 0' }}>{camp.title}</h4>
                                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                                        Raised: ₱{camp.raised.toLocaleString()} / ₱{camp.goal.toLocaleString()}
+                                        Raised: ₱{(camp.raised || 0).toLocaleString()} / ₱{(camp.goal || 0).toLocaleString()}
                                     </div>
                                 </div>
                             ))
@@ -223,7 +230,7 @@ export default function UserProfile() {
                                 <div key={req.id} className="glass-card" style={{ padding: 15 }}>
                                     <h4 style={{ margin: '0 0 5px 0' }}>{req.title}</h4>
                                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                                        Amount Needed: ₱{req.amount.toLocaleString()}
+                                        Amount Needed: ₱{(req.amount || 0).toLocaleString()}
                                     </div>
                                 </div>
                             ))
