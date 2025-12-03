@@ -4,14 +4,42 @@ import { FaUser, FaLock } from 'react-icons/fa';
 
 export default function Login() {
     const navigate = useNavigate();
-    const [email, setEmail] = useState('');
+    const [identifier, setIdentifier] = useState(''); // Username or Email
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
-        // Mock login logic
-        console.log('Logging in with:', email, password);
-        navigate('/home');
+        setError('');
+        setIsLoading(true);
+
+        try {
+            const response = await fetch('http://localhost:5000/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ identifier, password }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Login successful
+                console.log('Login successful:', data.user);
+                // In a real app, you'd store the token/user here (e.g., localStorage)
+                localStorage.setItem('user', JSON.stringify(data.user));
+                navigate('/home');
+            } else {
+                setError(data.message || 'Login failed');
+            }
+        } catch (err) {
+            console.error('Login error:', err);
+            setError('An error occurred. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -22,7 +50,7 @@ export default function Login() {
             justifyContent: 'center',
             alignItems: 'center',
             padding: 20,
-            background: 'var(--primary-bg)', // Ensure background matches
+            background: 'var(--primary-bg)',
             color: 'white'
         }}>
             <div className="glass-card" style={{ width: '100%', maxWidth: 400, padding: 40, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -45,15 +73,31 @@ export default function Login() {
 
                 <h2 style={{ marginBottom: 30, fontSize: 24, fontWeight: 'bold' }}>Welcome Back</h2>
 
+                {error && (
+                    <div style={{
+                        background: 'rgba(255, 107, 107, 0.2)',
+                        border: '1px solid #FF6B6B',
+                        color: '#FF6B6B',
+                        padding: '10px',
+                        borderRadius: '8px',
+                        width: '100%',
+                        marginBottom: 20,
+                        textAlign: 'center',
+                        fontSize: 14
+                    }}>
+                        {error}
+                    </div>
+                )}
+
                 <form onSubmit={handleLogin} style={{ width: '100%' }}>
-                    {/* Email Input */}
+                    {/* Identifier Input */}
                     <div style={{ marginBottom: 20, position: 'relative' }}>
                         <FaUser style={{ position: 'absolute', left: 15, top: 14, color: 'rgba(255,255,255,0.6)' }} />
                         <input
-                            type="email"
-                            placeholder="Email Address"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            type="text"
+                            placeholder="Username or Email"
+                            value={identifier}
+                            onChange={(e) => setIdentifier(e.target.value)}
                             style={{
                                 width: '100%',
                                 padding: '12px 12px 12px 45px',
@@ -100,16 +144,41 @@ export default function Login() {
                     </div>
 
                     {/* Login Button */}
-                    <button type="submit" className="btn" style={{ width: '100%', background: 'var(--accent-color)', color: 'white', fontSize: 16, padding: 14 }}>
-                        Log In
+                    <button
+                        type="submit"
+                        className="btn"
+                        disabled={isLoading}
+                        style={{
+                            width: '100%',
+                            background: 'var(--accent-color)',
+                            color: 'white',
+                            fontSize: 16,
+                            padding: 14,
+                            opacity: isLoading ? 0.7 : 1,
+                            cursor: isLoading ? 'not-allowed' : 'pointer'
+                        }}
+                    >
+                        {isLoading ? 'Logging in...' : 'Log In'}
                     </button>
                 </form>
 
                 {/* USTEP Link */}
-                <div style={{ marginTop: 30, textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>
+                <div style={{ marginTop: 30, textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.7)', width: '100%' }}>
                     Student or Faculty? <br />
-                    <button style={{ background: 'none', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer', marginTop: 5, textDecoration: 'underline' }}>
-                        Link USTEP Account
+                    <button style={{
+                        background: '#FFD700', // Yellow
+                        border: 'none',
+                        color: '#333', // Dark text for contrast
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        marginTop: 10,
+                        padding: '10px 20px',
+                        borderRadius: '20px',
+                        width: '100%',
+                        fontSize: 14,
+                        boxShadow: '0 4px 10px rgba(255, 215, 0, 0.3)'
+                    }}>
+                        Connect to USTEP Account
                     </button>
                 </div>
             </div>

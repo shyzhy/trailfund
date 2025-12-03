@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaArrowLeft, FaHeart, FaComment, FaShare, FaPaperPlane, FaImage } from 'react-icons/fa';
+import { FaArrowLeft, FaHeart, FaComment, FaShare, FaPaperPlane, FaImage, FaSearch, FaUserPlus, FaUserCheck } from 'react-icons/fa';
 import BottomNav from '../components/BottomNav';
+import mockUsers from '../data/mockUsers';
 
 export default function Community() {
     const navigate = useNavigate();
     const [posts, setPosts] = useState([]);
     const [newPost, setNewPost] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Mock data for now, will replace with API call
     useEffect(() => {
@@ -67,6 +69,15 @@ export default function Community() {
         }));
     };
 
+    const filteredUsers = searchQuery
+        ? mockUsers.filter(user => user.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        : [];
+
+    const filteredPosts = posts.filter(post =>
+        post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        post.author.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     return (
         <div style={{ padding: 20, paddingBottom: 100, minHeight: '100vh', color: 'white', position: 'relative' }}>
 
@@ -83,14 +94,129 @@ export default function Community() {
                 backgroundRepeat: 'no-repeat',
                 zIndex: -2,
                 opacity: 0.3,
-                maskImage: 'linear-gradient(to bottom, transparent 0%, black 30%, black 70%, transparent 100%)',
-                WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 30%, black 70%, transparent 100%)'
+                mask: 'linear-gradient(to bottom, transparent 0%, black 30%, black 70%, transparent 100%)',
+                WebkitMask: 'linear-gradient(to bottom, transparent 0%, black 30%, black 70%, transparent 100%)'
             }} />
 
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 20 }}>
-                <FaArrowLeft size={20} onClick={() => navigate(-1)} style={{ cursor: 'pointer' }} />
-                <h2 style={{ margin: 0, fontSize: 20 }}>Community Wall</h2>
+            <div style={{ marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 15 }}>
+                    <FaArrowLeft size={20} onClick={() => navigate(-1)} style={{ cursor: 'pointer' }} />
+                    <h2 style={{ margin: 0, fontSize: 20 }}>Community Wall</h2>
+                </div>
+
+                {/* Search Bar */}
+                <div style={{ position: 'relative', zIndex: 20 }}>
+                    <div className="glass-card" style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '10px 15px',
+                        borderRadius: 25,
+                        gap: 10
+                    }}>
+                        <FaSearch color="rgba(255,255,255,0.5)" />
+                        <input
+                            type="text"
+                            placeholder="Search friends or posts..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'white',
+                                width: '100%',
+                                outline: 'none',
+                                fontSize: 14
+                            }}
+                        />
+                    </div>
+
+                    {/* Search Dropdown */}
+                    {searchQuery && (
+                        <div className="glass-card" style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: 0,
+                            right: 0,
+                            marginTop: 10,
+                            padding: 15,
+                            background: 'rgba(0, 59, 92, 0.95)',
+                            backdropFilter: 'blur(20px)',
+                            borderRadius: 20,
+                            maxHeight: 400,
+                            overflowY: 'auto',
+                            boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+                            border: '1px solid rgba(255,255,255,0.1)'
+                        }}>
+                            {/* People Results */}
+                            {filteredUsers.length > 0 && (
+                                <div style={{ marginBottom: 20 }}>
+                                    <h3 style={{ fontSize: 14, marginBottom: 10, opacity: 0.7, textTransform: 'uppercase', letterSpacing: 1 }}>People</h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                        {filteredUsers.map(user => (
+                                            <div
+                                                key={user.id}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    cursor: 'pointer',
+                                                    padding: '8px 0',
+                                                    borderBottom: '1px solid rgba(255,255,255,0.05)'
+                                                }}
+                                                onClick={() => navigate(`/profile/${user.id}`)}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                    <img src={user.avatar} alt={user.name} style={{
+                                                        width: 36,
+                                                        height: 36,
+                                                        borderRadius: '50%',
+                                                        objectFit: 'cover'
+                                                    }} />
+                                                    <span style={{ fontWeight: 500, fontSize: 14 }}>{user.name}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Post Results */}
+                            {filteredPosts.length > 0 && (
+                                <div>
+                                    <h3 style={{ fontSize: 14, marginBottom: 10, opacity: 0.7, textTransform: 'uppercase', letterSpacing: 1 }}>Posts</h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                        {filteredPosts.map(post => (
+                                            <div
+                                                key={post._id}
+                                                style={{
+                                                    cursor: 'pointer',
+                                                    padding: '10px 0',
+                                                    borderBottom: '1px solid rgba(255,255,255,0.05)'
+                                                }}
+                                                onClick={() => navigate(`/community/post/${post._id}`)}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                                                    <img src={post.avatar} alt={post.author} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
+                                                    <span style={{ fontSize: 12, fontWeight: 'bold' }}>{post.author}</span>
+                                                </div>
+                                                <p style={{ fontSize: 13, margin: 0, opacity: 0.8, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                                    {post.content}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {filteredUsers.length === 0 && filteredPosts.length === 0 && (
+                                <div style={{ textAlign: 'center', opacity: 0.6, padding: 20, fontSize: 14 }}>
+                                    No results found for "{searchQuery}"
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Create Post */}
@@ -180,7 +306,10 @@ export default function Community() {
                                 <FaHeart /> {post.likes}
                             </button>
                             <button
-                                onClick={() => navigate(`/community/post/${post._id}`)}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/community/post/${post._id}`);
+                                }}
                                 style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}
                             >
                                 <FaComment /> {post.comments}

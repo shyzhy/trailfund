@@ -1,21 +1,101 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { FaSearch, FaSlidersH, FaBell, FaBars } from "react-icons/fa";
+import { FaSearch, FaSlidersH, FaBell, FaBars, FaCheck } from "react-icons/fa";
+
 import Sidebar from "../components/Sidebar";
+// Removed mock imports
 
 export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [campaigns, setCampaigns] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState('all'); // all, campaign, request, people, organization
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/campaigns')
-      .then(res => res.json())
-      .then(data => setCampaigns(data))
-      .catch(err => console.error('Error fetching campaigns:', err));
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setCurrentUser(JSON.parse(storedUser));
+    }
   }, []);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [campaignsRes, usersRes, requestsRes] = await Promise.all([
+          fetch('http://localhost:5000/api/campaigns'),
+          fetch('http://localhost:5000/api/users'),
+          fetch('http://localhost:5000/api/requests')
+        ]);
+
+        const campaignsData = await campaignsRes.json();
+        const usersData = await usersRes.json();
+        const requestsData = await requestsRes.json();
+
+        setCampaigns(campaignsData);
+        setUsers(usersData);
+        setRequests(requestsData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Aggregate all searchable items
+  const getAllItems = () => {
+    let items = [];
+
+    // Campaigns
+    if (filterType === 'all' || filterType === 'campaign') {
+      items = [...items, ...campaigns.map(c => ({ ...c, type: 'campaign', id: c._id, title: c.name }))];
+    }
+
+    // Requests
+    if (filterType === 'all' || filterType === 'request') {
+      // For now, requests are standalone, but if linked to users, we can map them
+      const requestItems = requests.map(r => ({ ...r, type: 'request', id: r._id, ownerName: 'Anonymous', avatar: '/assets/logo.png' }));
+      items = [...items, ...requestItems];
+    }
+
+    // People & Organizations
+    if (filterType === 'all' || filterType === 'people' || filterType === 'organization') {
+      const filteredUsers = users.filter(u => {
+        if (filterType === 'people') return u.role === 'student' || u.role === 'faculty'; // Simplified check
+        // Organization logic might need adjustment if we fetch Organizations separately
+        return true;
+      }).map(u => ({ ...u, title: u.name, description: u.bio, type: 'people', id: u._id, avatar: u.profile_picture }));
+      items = [...items, ...filteredUsers];
+    }
+
+    return items;
+  };
+
+  const filteredItems = getAllItems().filter(item => {
+    const query = searchQuery.toLowerCase();
+    const titleMatch = item.title ? item.title.toLowerCase().includes(query) : false;
+    const descMatch = item.description ? item.description.toLowerCase().includes(query) : false;
+    const nameMatch = item.name ? item.name.toLowerCase().includes(query) : false;
+
+    return titleMatch || descMatch || nameMatch;
+  });
+
+  const getFilterLabel = () => {
+    switch (filterType) {
+      case 'campaign': return 'Campaigns';
+      case 'request': return 'Requests';
+      case 'people': return 'People';
+      case 'organization': return 'Organizations';
+      default: return 'All';
+    }
+  };
+
   return (
-    <div style={{ padding: 20, paddingBottom: 100, position: 'relative' }}>
+    <div style={{ padding: 20, paddingBottom: 100, position: 'relative' }} onClick={() => setIsFilterOpen(false)}>
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
       {/* Background Image with Mask Fade */}
@@ -35,27 +115,27 @@ export default function Home() {
         WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 30%, black 70%, transparent 100%)'
       }} />
 
-
-
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <FaBars size={24} color="white" onClick={() => setIsSidebarOpen(true)} style={{ cursor: 'pointer' }} />
+        <FaBars size={24} color="white" onClick={(e) => { e.stopPropagation(); setIsSidebarOpen(true); }} style={{ cursor: 'pointer' }} />
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           <FaBell size={24} color="white" />
-          <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.3)' }}>
-            <img src="/assets/giselle.jpg" alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          </div>
+          <Link to="/profile">
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.3)' }}>
+              <img src={currentUser?.profile_picture || "/assets/giselle.jpg"} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
+          </Link>
         </div>
       </div>
 
       {/* Greeting */}
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 'bold', color: '#ff950ae6', margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>Good Day, Giselle!</h1>
+        <h1 style={{ fontSize: 28, fontWeight: 'bold', color: '#ff950ae6', margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>Good Day, {currentUser ? (currentUser.name || currentUser.username) : 'Guest'}!</h1>
         <p style={{ fontSize: 16, color: '#ffffffe6', margin: '4px 0 0 0' }}>Do you wanna donate today?</p>
       </div>
 
       {/* Search Bar */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 24, position: 'relative', zIndex: 20 }} onClick={(e) => e.stopPropagation()}>
         <div className="glass-card" style={{
           flex: 1,
           padding: '12px 20px',
@@ -66,7 +146,9 @@ export default function Home() {
         }}>
           <FaSearch color="rgba(255,255,255,0.8)" />
           <input
-            placeholder="Search ..."
+            placeholder={`Search ${getFilterLabel()}...`}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             style={{
               background: 'transparent',
               border: 'none',
@@ -78,18 +160,121 @@ export default function Home() {
             }}
           />
         </div>
-        <div style={{
-          width: 48,
-          height: 48,
-          borderRadius: '50%',
-          background: '#4ADE80',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          boxShadow: '0 4px 12px rgba(74, 222, 128, 0.4)'
-        }}>
-          <FaSlidersH color="white" />
+
+        {/* Filter Button */}
+        <div style={{ position: 'relative' }}>
+          <div
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              background: isFilterOpen ? 'white' : '#4ADE80',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              boxShadow: '0 4px 12px rgba(74, 222, 128, 0.4)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <FaSlidersH color={isFilterOpen ? '#4ADE80' : 'white'} />
+          </div>
+
+          {/* Filter Dropdown */}
+          {isFilterOpen && (
+            <div className="glass-card" style={{
+              position: 'absolute',
+              top: '120%',
+              right: 0,
+              width: 200,
+              padding: 10,
+              background: 'rgba(0, 59, 92, 0.95)',
+              backdropFilter: 'blur(20px)',
+              borderRadius: 16,
+              zIndex: 30,
+              boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+              border: '1px solid rgba(255,255,255,0.1)'
+            }}>
+              {['all', 'campaign', 'request', 'people', 'organization'].map(type => (
+                <div
+                  key={type}
+                  onClick={() => { setFilterType(type); setIsFilterOpen(false); }}
+                  style={{
+                    padding: '10px 15px',
+                    borderRadius: 10,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    background: filterType === type ? 'rgba(255,255,255,0.1)' : 'transparent',
+                    color: 'white',
+                    marginBottom: 4,
+                    fontSize: 14,
+                    textTransform: 'capitalize'
+                  }}
+                >
+                  {type === 'people' ? 'People' : type === 'organization' ? 'Organizations' : type + 's'}
+                  {filterType === type && <FaCheck size={12} color="#4ADE80" />}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Search Dropdown Results */}
+        {searchQuery && (
+          <div className="glass-card" style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            marginTop: 10,
+            padding: 10,
+            background: 'rgba(0, 59, 92, 0.95)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: 20,
+            maxHeight: 300,
+            overflowY: 'auto',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            {filteredItems.length > 0 ? (
+              filteredItems.map((item, index) => (
+                <Link to={item.type === 'people' || item.type === 'organization' ? `/profile/${item.id}` : `/campaigns/${item.id}`} key={`${item.type}-${item.id}-${index}`} style={{ textDecoration: 'none', color: 'white' }}>
+                  <div style={{
+                    padding: 10,
+                    borderBottom: '1px solid rgba(255,255,255,0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10
+                  }}>
+                    <img src={item.avatar || item.image || "/assets/university.jpg"} alt={item.title || item.name} style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover' }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 'bold' }}>{item.title || item.name}</div>
+                      <div style={{ fontSize: 12, opacity: 0.7, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{
+                          textTransform: 'uppercase',
+                          fontSize: 10,
+                          background: 'rgba(255,255,255,0.2)',
+                          padding: '2px 6px',
+                          borderRadius: 4
+                        }}>
+                          {item.type}
+                        </span>
+                        {item.ownerName || (item.bio && item.bio.substring(0, 30) + '...')}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <div style={{ padding: 15, textAlign: 'center', opacity: 0.7, fontSize: 14 }}>
+                No results found for "{searchQuery}" in {getFilterLabel()}.
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Request Banner */}
@@ -141,7 +326,7 @@ export default function Home() {
                 <span style={{ color: '#FF6B6B', border: '1px solid #FF6B6B', padding: '4px 12px', borderRadius: 12, fontSize: 12, fontWeight: 'bold', background: 'rgba(255, 107, 107, 0.1)' }}>Urgent</span>
               </div>
 
-              <h3 style={{ fontSize: 16, fontWeight: 'bold', margin: '0 0 8px 0' }}>{campaign.title}</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 'bold', margin: '0 0 8px 0' }}>{campaign.name}</h3>
               <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, marginBottom: 16 }}>
                 {campaign.description ? campaign.description.substring(0, 60) + "..." : "No description"}
               </p>

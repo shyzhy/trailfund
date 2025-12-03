@@ -1,17 +1,418 @@
-import React from "react";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FaArrowLeft, FaUserPlus, FaUserCheck, FaMapMarkerAlt, FaGraduationCap, FaBirthdayCake, FaBuilding, FaEdit, FaSave, FaTimes, FaKey, FaUserCog, FaLink, FaCamera } from 'react-icons/fa';
+import mockUsers from '../data/mockUsers';
+import BottomNav from '../components/BottomNav';
 
-export default function Profile(){
+export default function Profile() {
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [activeTab, setActiveTab] = useState('posts');
+  const [formData, setFormData] = useState({});
+
+  // Simulate fetching current user (ID 1 - Giselle)
+  useEffect(() => {
+    const currentUser = mockUsers.find(u => u.id === 1);
+    setUser(currentUser);
+    setFormData(currentUser);
+  }, []);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSave = () => {
+    setUser(formData);
+    setIsEditing(false);
+    // In a real app, we would send an API request here
+  };
+
+  const handleCancel = () => {
+    setFormData(user);
+    setIsEditing(false);
+  };
+
+  if (!user) return null;
+
   return (
-    <div>
-      <div className="card">
-        <h2>Your Profile</h2>
-        <p className="campaign-meta">Name: Example User</p>
-        <p className="campaign-meta">Donations: ₱1,250</p>
+    <div style={{ paddingBottom: 100, minHeight: '100vh', color: 'white', position: 'relative' }}>
+
+      {/* Header / Cover Area */}
+      <div style={{
+        height: '240px',
+        background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Decorative Circles */}
+        <div style={{
+          position: 'absolute',
+          top: -50,
+          right: -50,
+          width: 200,
+          height: 200,
+          borderRadius: '50%',
+          background: 'rgba(255,255,255,0.1)',
+          filter: 'blur(40px)'
+        }} />
+        <div style={{
+          position: 'absolute',
+          bottom: -30,
+          left: -30,
+          width: 150,
+          height: 150,
+          borderRadius: '50%',
+          background: 'rgba(255,255,255,0.05)',
+          filter: 'blur(30px)'
+        }} />
+
+        <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 10 }}>
+          {!isEditing ? (
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                style={{
+                  background: showSettings ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
+                  backdropFilter: 'blur(5px)',
+                  border: 'none',
+                  color: 'white',
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  fontSize: 16
+                }}
+                title="Account Settings"
+              >
+                <FaUserCog />
+              </button>
+              <button
+                onClick={() => setIsEditing(true)}
+                style={{
+                  background: 'rgba(0,0,0,0.3)',
+                  backdropFilter: 'blur(5px)',
+                  border: 'none',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  cursor: 'pointer',
+                  fontSize: 14
+                }}
+              >
+                <FaEdit /> Edit Profile
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={handleCancel}
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  border: 'none',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: 20,
+                  cursor: 'pointer',
+                  fontSize: 14
+                }}
+              >
+                <FaTimes /> Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                style={{
+                  background: 'var(--accent-color)',
+                  border: 'none',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  fontWeight: 'bold'
+                }}
+              >
+                <FaSave /> Save
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-      <div className="card">
-        <h3>Your Campaigns</h3>
-        <p className="campaign-meta">No active campaigns yet.</p>
+
+      <div style={{ padding: '0 24px', marginTop: -60, position: 'relative', zIndex: 5 }}>
+        {/* Profile Info */}
+        <div style={{ marginBottom: 25 }}>
+          <div style={{ position: 'relative', width: 110, height: 110, marginBottom: 15 }}>
+            <img
+              src={user.avatar}
+              alt={user.name}
+              style={{
+                width: '100%',
+                height: '100%',
+                borderRadius: '50%',
+                border: '4px solid #003B5C',
+                objectFit: 'cover',
+                background: '#1a1a1a',
+                boxShadow: '0 8px 20px rgba(0,0,0,0.3)'
+              }}
+            />
+            {isEditing && (
+              <div style={{
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                background: 'var(--accent-color)',
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '3px solid #003B5C',
+                cursor: 'pointer'
+              }}>
+                <FaCamera size={14} color="white" />
+              </div>
+            )}
+          </div>
+
+          {isEditing ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                placeholder="Name"
+                style={inputStyle}
+              />
+              <input
+                type="text"
+                name="username"
+                value={formData.username}
+                onChange={handleInputChange}
+                placeholder="Username"
+                style={inputStyle}
+              />
+              <textarea
+                name="bio"
+                value={formData.bio}
+                onChange={handleInputChange}
+                placeholder="Bio"
+                rows={3}
+                style={{ ...inputStyle, resize: 'none' }}
+              />
+            </div>
+          ) : (
+            <>
+              <h1 style={{ margin: 0, fontSize: 28, fontWeight: '800', letterSpacing: '-0.5px' }}>{user.name}</h1>
+              <p style={{ margin: '4px 0', color: 'var(--accent-color)', fontSize: 15, fontWeight: '500' }}>{user.username}</p>
+              <p style={{ marginTop: 12, lineHeight: 1.6, fontSize: 15, color: 'rgba(255,255,255,0.9)', maxWidth: '90%' }}>{user.bio}</p>
+            </>
+          )}
+        </div>
+
+        {/* Details Cards */}
+        <div className="glass-card" style={{
+          padding: 20,
+          marginBottom: 30,
+          display: 'grid',
+          gap: 16,
+          background: 'rgba(255, 255, 255, 0.05)',
+          border: '1px solid rgba(255, 255, 255, 0.1)'
+        }}>
+          {isEditing ? (
+            <>
+              <div style={editRowStyle}>
+                <FaBirthdayCake color="var(--accent-color)" size={14} />
+                <input type="number" name="age" value={formData.age || ''} onChange={handleInputChange} placeholder="Age" style={inputStyle} />
+              </div>
+              <div style={editRowStyle}>
+                <FaBuilding color="var(--accent-color)" size={14} />
+                <input type="text" name="college" value={formData.college || ''} onChange={handleInputChange} placeholder="College" style={inputStyle} />
+              </div>
+              <div style={editRowStyle}>
+                <FaGraduationCap color="var(--accent-color)" size={16} />
+                <input type="text" name="department" value={formData.department || ''} onChange={handleInputChange} placeholder="Department" style={inputStyle} />
+              </div>
+              <div style={editRowStyle}>
+                <span style={{ width: 16 }}></span>
+                <input type="text" name="yearLevel" value={formData.yearLevel || ''} onChange={handleInputChange} placeholder="Year Level" style={inputStyle} />
+              </div>
+            </>
+          ) : (
+            <>
+              {user.age && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 15, color: 'rgba(255,255,255,0.9)' }}>
+                  <div style={iconBoxStyle}>
+                    <FaBirthdayCake color="var(--accent-color)" size={14} />
+                  </div>
+                  {user.age} years old
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 15, color: 'rgba(255,255,255,0.9)' }}>
+                <div style={iconBoxStyle}>
+                  <FaBuilding color="var(--accent-color)" size={14} />
+                </div>
+                {user.college}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 15, color: 'rgba(255,255,255,0.9)' }}>
+                <div style={iconBoxStyle}>
+                  <FaGraduationCap color="var(--accent-color)" size={16} />
+                </div>
+                <span>{user.department} <span style={{ opacity: 0.5 }}>•</span> {user.yearLevel}</span>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Account Settings */}
+        {showSettings && (
+          <div style={{ marginBottom: 30, animation: 'fadeIn 0.3s ease' }}>
+            <h3 style={{ fontSize: 18, marginBottom: 15 }}>Account Settings</h3>
+            <div className="glass-card" style={{ padding: 5, display: 'flex', flexDirection: 'column' }}>
+              <SettingsItem icon={<FaKey />} label="Change Password" onClick={() => alert('Change Password Clicked')} />
+              <SettingsItem icon={<FaUserCog />} label="Change Username" onClick={() => alert('Change Username Clicked')} />
+              <SettingsItem icon={<FaLink />} label="Link USTEP Account" onClick={() => alert('Link USTEP Clicked')} />
+            </div>
+          </div>
+        )}
+
+        {/* Tabs */}
+        <div style={{
+          display: 'flex',
+          background: 'rgba(0,0,0,0.2)',
+          padding: 4,
+          borderRadius: 16,
+          marginBottom: 25
+        }}>
+          {['posts', 'campaigns', 'requests'].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                flex: 1,
+                background: activeTab === tab ? 'rgba(255,255,255,0.1)' : 'transparent',
+                border: 'none',
+                color: activeTab === tab ? 'white' : 'rgba(255,255,255,0.5)',
+                padding: '10px 0',
+                borderRadius: 12,
+                cursor: 'pointer',
+                textTransform: 'capitalize',
+                fontWeight: activeTab === tab ? '600' : '500',
+                transition: 'all 0.3s ease',
+                fontSize: 14
+              }}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+          {activeTab === 'posts' && (
+            user.posts && user.posts.length > 0 ? (
+              user.posts.map(post => (
+                <div key={post.id} className="glass-card" style={{ padding: 15 }}>
+                  <p style={{ margin: '0 0 10px 0', fontSize: 14 }}>{post.content}</p>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{post.time} • {post.likes} Likes</div>
+                </div>
+              ))
+            ) : <div style={{ textAlign: 'center', opacity: 0.5, padding: 20 }}>No posts yet</div>
+          )}
+
+          {activeTab === 'campaigns' && (
+            user.campaigns && user.campaigns.length > 0 ? (
+              user.campaigns.map(camp => (
+                <div key={camp.id} className="glass-card" style={{ padding: 15 }}>
+                  <h4 style={{ margin: '0 0 5px 0' }}>{camp.title}</h4>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                    Raised: ₱{camp.raised.toLocaleString()} / ₱{camp.goal.toLocaleString()}
+                  </div>
+                </div>
+              ))
+            ) : <div style={{ textAlign: 'center', opacity: 0.5, padding: 20 }}>No active campaigns</div>
+          )}
+
+          {activeTab === 'requests' && (
+            user.requests && user.requests.length > 0 ? (
+              user.requests.map(req => (
+                <div key={req.id} className="glass-card" style={{ padding: 15 }}>
+                  <h4 style={{ margin: '0 0 5px 0' }}>{req.title}</h4>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                    Amount Needed: ₱{req.amount.toLocaleString()}
+                  </div>
+                </div>
+              ))
+            ) : <div style={{ textAlign: 'center', opacity: 0.5, padding: 20 }}>No active requests</div>
+          )}
+        </div>
+
       </div>
+      <BottomNav />
     </div>
   );
 }
+
+const inputStyle = {
+  width: '100%',
+  background: 'rgba(255,255,255,0.1)',
+  border: '1px solid rgba(255,255,255,0.2)',
+  padding: '10px',
+  borderRadius: '8px',
+  color: 'white',
+  fontSize: '14px',
+  outline: 'none'
+};
+
+const editRowStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 10
+};
+
+const iconBoxStyle = {
+  width: 32,
+  height: 32,
+  borderRadius: 10,
+  background: 'rgba(0, 180, 216, 0.1)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center'
+};
+
+const SettingsItem = ({ icon, label, onClick }) => (
+  <button
+    onClick={onClick}
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 15,
+      padding: '15px',
+      background: 'transparent',
+      border: 'none',
+      borderBottom: '1px solid rgba(255,255,255,0.05)',
+      color: 'white',
+      width: '100%',
+      textAlign: 'left',
+      cursor: 'pointer',
+      fontSize: 15
+    }}
+  >
+    <div style={{ color: 'var(--accent-color)' }}>{icon}</div>
+    <span style={{ flex: 1 }}>{label}</span>
+    <div style={{ opacity: 0.5 }}>›</div>
+  </button>
+);
