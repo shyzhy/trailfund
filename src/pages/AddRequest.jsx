@@ -36,6 +36,14 @@ export default function AddRequest() {
     };
 
     const handleSubmit = async () => {
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
+            setModal({ isOpen: true, type: 'error', message: 'You must be logged in to post a request.' });
+            setTimeout(() => navigate('/login'), 2000);
+            return;
+        }
+        const user = JSON.parse(userStr);
+
         if (!formData.title || !formData.description) {
             setModal({ isOpen: true, type: 'warning', message: 'Please fill in Title and Description.' });
             return;
@@ -48,9 +56,19 @@ export default function AddRequest() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    ...formData,
-                    category,
-                    urgency
+                    user_id: user._id,
+                    title: formData.title,
+                    description: formData.description,
+                    request_type: category,
+                    location: formData.location,
+                    max_donation: formData.maxAmount,
+                    min_donation: formData.minAmount,
+                    digital_type: formData.digitalType,
+                    account_number: formData.accountNumber,
+                    service_type: formData.serviceType,
+                    resource_type: formData.resourceType,
+                    hashtags: formData.hashtags,
+                    urgency: urgency
                 })
             });
 

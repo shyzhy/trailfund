@@ -34,12 +34,21 @@ export default function Campaigns() {
         setCampaigns([]);
       });
 
-    // Fetch Requests (Mock for now if API not ready, or fetch real)
-    setRequests([
-      { id: 1, title: 'Need O+ Blood', requester: 'John Doe', urgency: 'High', location: 'City Hospital' },
-      { id: 2, title: 'Textbooks for Grade 10', requester: 'Mary Jane', urgency: 'Medium', location: 'Barangay Hall' },
-      { id: 3, title: 'Canned Goods for Victims', requester: 'LGU', urgency: 'Low', location: 'Evacuation Center' }
-    ]);
+    // Fetch Requests
+    fetch(`${API_BASE_URL}/api/requests`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setRequests(data);
+        } else {
+          console.error('API returned non-array for requests:', data);
+          setRequests([]);
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching requests:', err);
+        setRequests([]);
+      });
   }, []);
 
   // Sync filterType with activeTab when tab changes
@@ -54,7 +63,12 @@ export default function Campaigns() {
 
   const filteredRequests = requests.filter(r => {
     if (filterUrgency === 'All') return true;
-    return r.urgency === filterUrgency;
+    // Map backend urgency (Green/Yellow/Red) to frontend filter (Low/Medium/High) if needed
+    // Or just assume frontend filter matches backend values if we update filter options
+    // Let's map for now to be safe based on previous task
+    const urgencyMap = { 'Green': 'Low', 'Yellow': 'Medium', 'Red': 'High' };
+    const mappedUrgency = urgencyMap[r.urgency] || r.urgency;
+    return mappedUrgency === filterUrgency;
   });
 
   return (
@@ -275,22 +289,22 @@ export default function Campaigns() {
           ))
         ) : (
           filteredRequests.map(r => (
-            <div key={r.id} className="glass-card" style={{ padding: 20 }}>
+            <div key={r._id} className="glass-card" style={{ padding: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                 <h3 style={{ margin: 0, fontSize: 18, fontWeight: 'bold' }}>{r.title}</h3>
                 <span style={{
-                  background: r.urgency === 'High' ? 'rgba(255, 77, 77, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-                  color: r.urgency === 'High' ? '#ff4d4d' : 'white',
+                  background: r.urgency === 'Red' ? 'rgba(220, 53, 69, 0.2)' : r.urgency === 'Yellow' ? 'rgba(255, 193, 7, 0.2)' : 'rgba(40, 167, 69, 0.2)',
+                  color: r.urgency === 'Red' ? '#dc3545' : r.urgency === 'Yellow' ? '#ffc107' : '#28a745',
                   padding: '4px 10px',
                   borderRadius: 12,
                   fontSize: 11,
                   fontWeight: 'bold'
                 }}>
-                  {r.urgency} Priority
+                  {r.urgency === 'Green' ? 'Low' : r.urgency === 'Yellow' ? 'Moderate' : 'High'} Priority
                 </span>
               </div>
               <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 15 }}>
-                Requested by <span style={{ color: 'white', fontWeight: 'bold' }}>{r.requester}</span> • {r.location}
+                Requested by <span style={{ color: 'white', fontWeight: 'bold' }}>{r.user_id?.name || 'Unknown'}</span> • {r.location}
               </p>
               <button className="btn" style={{ width: '100%', background: 'rgba(255,255,255,0.1)', color: 'white', padding: 10 }}>View Request</button>
             </div>

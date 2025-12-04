@@ -49,6 +49,8 @@ const UploadPhoto = () => {
             });
 
             if (response.ok) {
+                const data = await response.json();
+                localStorage.setItem('user', JSON.stringify(data.user));
                 navigate('/home');
             } else {
                 const data = await response.json();

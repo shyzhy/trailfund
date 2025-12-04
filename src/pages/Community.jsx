@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaHeart, FaComment, FaShare, FaPaperPlane, FaImage, FaSearch, FaUserPlus, FaUserCheck } from 'react-icons/fa';
 import BottomNav from '../components/BottomNav';
+import { API_BASE_URL } from '../config';
 import mockUsers from '../data/mockUsers';
 
 export default function Community() {
@@ -10,63 +11,84 @@ export default function Community() {
     const [newPost, setNewPost] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Mock data for now, will replace with API call
+    // Fetch posts from API
     useEffect(() => {
-        setPosts([
-            {
-                _id: 1,
-                author: 'CITC Student Council',
-                avatar: '/assets/logo.png',
-                time: '2 hours ago',
-                content: '📢 Attention Students! The donation drive for the victims of Typhoon Egay is now open. Please drop off your donations at the Student Center.',
-                likes: 45,
-                comments: 12,
-                isLiked: false
-            },
-            {
-                _id: 2,
-                author: 'Giselle',
-                avatar: '/assets/giselle.jpg',
-                time: '5 hours ago',
-                content: 'Does anyone have a spare scientific calculator I could borrow for the exam tomorrow? 🥺',
-                likes: 8,
-                comments: 3,
-                isLiked: false
+        const fetchPosts = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/posts`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setPosts(data);
+                }
+            } catch (err) {
+                console.error('Error fetching posts:', err);
             }
-        ]);
+        };
+        fetchPosts();
     }, []);
 
-    const handlePostSubmit = () => {
+    const handlePostSubmit = async () => {
         if (!newPost.trim()) return;
 
-        const post = {
-            _id: Date.now(),
-            author: 'Giselle', // Current user
-            avatar: '/assets/giselle.jpg',
-            time: 'Just now',
-            content: newPost,
-            likes: 0,
-            comments: 0,
-            isLiked: false
-        };
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
+            alert('Please login to post');
+            return;
+        }
+        const user = JSON.parse(userStr);
 
-        setPosts([post, ...posts]);
-        setNewPost('');
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/posts`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: user._id,
+                    content: newPost
+                })
+            });
+
+            if (response.ok) {
+                const savedPost = await response.json();
+                setPosts([savedPost, ...posts]);
+                setNewPost('');
+            }
+        } catch (err) {
+            console.error('Error creating post:', err);
+        }
     };
 
-    const handleLike = (postId, e) => {
+    const handleLike = async (postId, e) => {
         e.stopPropagation();
-        setPosts(posts.map(post => {
-            if (post._id === postId) {
-                const isLiked = post.isLiked;
-                return {
-                    ...post,
-                    isLiked: !isLiked,
-                    likes: isLiked ? post.likes - 1 : post.likes + 1
-                };
+        const userStr = localStorage.getItem('user');
+        if (!userStr) return;
+        const user = JSON.parse(userStr);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/posts/${postId}/like`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: user._id })
+            });
+
+            if (response.ok) {
+                const updatedPost = await response.json();
+                // Manually populate user details if needed, or just update likes
+                // Since API returns the post but maybe not populated user, we might need to be careful
+                // Actually, let's just update the likes array in local state
+                setPosts(posts.map(p => {
+                    if (p._id === postId) {
+                        // Optimistic update or use returned data
+                        // The returned data might not have populated user_id if we didn't populate in the like endpoint
+                        // Let's just toggle locally for smoothness or re-fetch
+                        // Better: Update likes array from response
+                        return { ...p, likes: updatedPost.likes };
+                    }
+                    return p;
+                }));
             }
-            return post;
-        }));
+        } catch (err) {
+            console.error('Error liking post:', err);
+        }
     };
 
     const filteredUsers = searchQuery
@@ -75,7 +97,7 @@ export default function Community() {
 
     const filteredPosts = posts.filter(post =>
         post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.author.toLowerCase().includes(searchQuery.toLowerCase())
+        (post.user_id?.name || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
@@ -197,8 +219,8 @@ export default function Community() {
                                                 onClick={() => navigate(`/community/post/${post._id}`)}
                                             >
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
-                                                    <img src={post.avatar} alt={post.author} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
-                                                    <span style={{ fontSize: 12, fontWeight: 'bold' }}>{post.author}</span>
+                                                    <img src={post.user_id?.profile_picture || '/assets/pfp1.jpg'} alt={post.user_id?.name} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
+                                                    <span style={{ fontSize: 12, fontWeight: 'bold' }}>{post.user_id?.name || 'Unknown'}</span>
                                                 </div>
                                                 <p style={{ fontSize: 13, margin: 0, opacity: 0.8, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                                     {post.content}
@@ -222,7 +244,7 @@ export default function Community() {
             {/* Create Post */}
             <div className="glass-card" style={{ padding: 15, marginBottom: 25 }}>
                 <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
-                    <img src="/assets/giselle.jpg" alt="User" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+                    <img src={JSON.parse(localStorage.getItem('user'))?.profile_picture || "/assets/pfp1.jpg"} alt="User" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
                     <textarea
                         value={newPost}
                         onChange={(e) => setNewPost(e.target.value)}
@@ -276,10 +298,10 @@ export default function Community() {
                     >
                         {/* Post Header */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 15 }}>
-                            <img src={post.avatar} alt={post.author} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.3)' }} />
+                            <img src={post.user_id?.profile_picture || '/assets/pfp1.jpg'} alt={post.user_id?.name} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.3)' }} />
                             <div>
-                                <div style={{ fontWeight: 'bold', fontSize: 15 }}>{post.author}</div>
-                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{post.time}</div>
+                                <div style={{ fontWeight: 'bold', fontSize: 15 }}>{post.user_id?.name || 'Unknown'}</div>
+                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{new Date(post.date_posted).toLocaleString()}</div>
                             </div>
                         </div>
 
@@ -295,7 +317,7 @@ export default function Community() {
                                 style={{
                                     background: 'none',
                                     border: 'none',
-                                    color: post.isLiked ? '#ff4d4d' : 'rgba(255,255,255,0.6)',
+                                    color: (post.likes || []).includes(JSON.parse(localStorage.getItem('user'))?._id) ? '#ff4d4d' : 'rgba(255,255,255,0.6)',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: 6,
@@ -303,7 +325,7 @@ export default function Community() {
                                     fontSize: 13
                                 }}
                             >
-                                <FaHeart /> {post.likes}
+                                <FaHeart /> {post.likes?.length || 0}
                             </button>
                             <button
                                 onClick={(e) => {

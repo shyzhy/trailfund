@@ -4,6 +4,7 @@ const Campaign = require('../models/Campaign');
 const Request = require('../models/Request');
 const Post = require('../models/Post');
 const User = require('../models/User');
+const Comment = require('../models/Comment');
 
 // --- USERS ---
 
@@ -101,6 +102,16 @@ router.post('/users/:id/photo', async (req, res) => {
     }
 });
 
+// Get requests by user
+router.get('/users/:id/requests', async (req, res) => {
+    try {
+        const requests = await Request.find({ user_id: req.params.id }).sort({ createdAt: -1 });
+        res.json(requests);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 // --- CAMPAIGNS ---
 
 // Get all campaigns
@@ -129,7 +140,7 @@ router.post('/campaigns', async (req, res) => {
 // Get all requests
 router.get('/requests', async (req, res) => {
     try {
-        const requests = await Request.find().sort({ createdAt: -1 });
+        const requests = await Request.find().populate('user_id', 'name username').sort({ createdAt: -1 });
         res.json(requests);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -152,7 +163,7 @@ router.post('/requests', async (req, res) => {
 // Get all posts
 router.get('/posts', async (req, res) => {
     try {
-        const posts = await Post.find().sort({ createdAt: -1 });
+        const posts = await Post.find().populate('user_id', 'name username profile_picture').sort({ date_posted: -1 });
         res.json(posts);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -164,8 +175,90 @@ router.post('/posts', async (req, res) => {
     const post = new Post(req.body);
     try {
         const newPost = await post.save();
+        // Populate user details for immediate display
+        await newPost.populate('user_id', 'name username profile_picture');
         res.status(201).json(newPost);
     } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+// Toggle Like
+router.post('/posts/:id/like', async (req, res) => {
+    const { user_id } = req.body;
+    try {
+        const post = await Post.findById(req.params.id);
+        if (!post) return res.status(404).json({ message: 'Post not found' });
+
+        const index = post.likes.indexOf(user_id);
+        if (index === -1) {
+            post.likes.push(user_id); // Like
+        } else {
+            post.likes.splice(index, 1); // Unlike
+        }
+        await post.save();
+        res.json(post);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Get posts by user
+router.get('/users/:id/posts', async (req, res) => {
+    try {
+        const posts = await Post.find({ user_id: req.params.id }).sort({ date_posted: -1 });
+        res.json(posts);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Get single post
+router.get('/posts/:id', async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id).populate('user_id', 'name username profile_picture');
+        if (!post) return res.status(404).json({ message: 'Post not found' });
+        res.json(post);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Get comments for a post
+router.get('/posts/:id/comments', async (req, res) => {
+    try {
+        const comments = await Comment.find({ post_id: req.params.id }).populate('user_id', 'name username profile_picture').sort({ date_posted: 1 });
+        res.json(comments);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Add a comment
+router.post('/posts/:id/comments', async (req, res) => {
+    const { user_id, content, parent_comment_id } = req.body;
+
+    if (!user_id || !content) {
+        return res.status(400).json({ message: 'User ID and content are required' });
+    }
+
+    try {
+        const comment = new Comment({
+            user_id,
+            post_id: req.params.id,
+            content,
+            parent_comment_id
+        });
+
+        const newComment = await comment.save();
+
+        // Update post comment count
+        await Post.findByIdAndUpdate(req.params.id, { $inc: { comments: 1 } });
+
+        await newComment.populate('user_id', 'name username profile_picture');
+        res.status(201).json(newComment);
+    } catch (err) {
+        console.error('Error saving comment:', err);
         res.status(400).json({ message: err.message });
     }
 });

@@ -38,6 +38,7 @@ const Signup = () => {
             const data = await response.json();
 
             if (response.ok) {
+                localStorage.setItem('user', JSON.stringify(data.user));
                 navigate('/upload-photo', { state: { userId: data.user._id, username: data.user.username } });
             } else {
                 setError(data.message || 'Signup failed');

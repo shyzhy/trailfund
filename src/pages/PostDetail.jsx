@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaHeart, FaComment, FaShare, FaPaperPlane } from 'react-icons/fa';
+import { API_BASE_URL } from '../config';
 
 export default function PostDetail() {
     const { id } = useParams();
@@ -11,51 +12,92 @@ export default function PostDetail() {
     const [isLiked, setIsLiked] = useState(false);
     const [replyingTo, setReplyingTo] = useState(null);
 
-    // Mock data fetching
-    useEffect(() => {
-        // In a real app, fetch post by ID
-        // For now, we'll just use dummy data matching the ID or generic data
-        const dummyPost = {
-            _id: id,
-            author: 'CITC Student Council',
-            avatar: '/assets/logo.png',
-            time: '2 hours ago',
-            content: '📢 Attention Students! The donation drive for the victims of Typhoon Egay is now open. Please drop off your donations at the Student Center.',
-            likes: 45,
-            comments: 12
-        };
-        setPost(dummyPost);
-        setIsLiked(false);
+    // Fetch comments function
+    const fetchComments = async () => {
+        try {
+            const commentsRes = await fetch(`${API_BASE_URL}/api/posts/${id}/comments`);
+            if (commentsRes.ok) {
+                const commentsData = await commentsRes.json();
 
-        // Mock comments with replies
-        setComments([
-            {
-                id: 1,
-                author: 'Mark Lee',
-                avatar: 'https://i.pravatar.cc/150?img=11',
-                content: 'Will there be a drop-off box for clothes?',
-                time: '1 hour ago',
-                replies: [
-                    { id: 101, author: 'CITC Student Council', avatar: '/assets/logo.png', content: 'Yes, there is a designated box near the entrance.', time: '55 mins ago' }
-                ]
-            },
-            {
-                id: 2,
-                author: 'Haechan',
-                avatar: 'https://i.pravatar.cc/150?img=12',
-                content: 'Noted on this! Thanks.',
-                time: '30 mins ago',
-                replies: []
+                // Create a map for easy lookup
+                const commentMap = {};
+                commentsData.forEach(c => {
+                    commentMap[c._id] = {
+                        id: c._id,
+                        author: c.user_id?.name || 'Unknown',
+                        avatar: c.user_id?.profile_picture || '/assets/pfp1.jpg',
+                        content: c.content,
+                        time: new Date(c.date_posted).toLocaleString(),
+                        replies: []
+                    };
+                });
+
+                // Build the tree
+                const rootComments = [];
+                commentsData.forEach(c => {
+                    if (c.parent_comment_id) {
+                        if (commentMap[c.parent_comment_id]) {
+                            commentMap[c.parent_comment_id].replies.push(commentMap[c._id]);
+                        }
+                    } else {
+                        rootComments.push(commentMap[c._id]);
+                    }
+                });
+
+                setComments(rootComments);
             }
-        ]);
+        } catch (err) {
+            console.error('Error fetching comments:', err);
+        }
+    };
+
+    // Fetch post and comments
+    useEffect(() => {
+        const fetchPostData = async () => {
+            try {
+                // Fetch Post
+                const postRes = await fetch(`${API_BASE_URL}/api/posts/${id}`);
+                if (postRes.ok) {
+                    const postData = await postRes.json();
+                    setPost(postData);
+
+                    // Check if liked by current user
+                    const userStr = localStorage.getItem('user');
+                    if (userStr) {
+                        const user = JSON.parse(userStr);
+                        setIsLiked(postData.likes.includes(user._id));
+                    }
+                }
+
+                // Fetch Comments
+                await fetchComments();
+            } catch (err) {
+                console.error('Error fetching post details:', err);
+            }
+        };
+        fetchPostData();
     }, [id]);
 
-    const handleLike = () => {
-        setIsLiked(!isLiked);
-        setPost(prev => ({
-            ...prev,
-            likes: isLiked ? prev.likes - 1 : prev.likes + 1
-        }));
+    const handleLike = async () => {
+        const userStr = localStorage.getItem('user');
+        if (!userStr) return;
+        const user = JSON.parse(userStr);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/posts/${id}/like`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: user._id })
+            });
+
+            if (response.ok) {
+                const updatedPost = await response.json();
+                setPost(prev => ({ ...prev, likes: updatedPost.likes }));
+                setIsLiked(!isLiked);
+            }
+        } catch (err) {
+            console.error('Error liking post:', err);
+        }
     };
 
     const handleReplyClick = (comment) => {
@@ -63,40 +105,41 @@ export default function PostDetail() {
         setNewComment(`@${comment.author} `);
     };
 
-    const handleCommentSubmit = () => {
+    const handleCommentSubmit = async () => {
         if (!newComment.trim()) return;
 
-        const newCommentObj = {
-            id: Date.now(),
-            author: 'Giselle',
-            avatar: '/assets/giselle.jpg',
-            content: newComment,
-            time: 'Just now',
-            replies: []
-        };
-
-        if (replyingTo) {
-            setComments(comments.map(comment => {
-                if (comment.id === replyingTo.id) {
-                    return {
-                        ...comment,
-                        replies: [...comment.replies, newCommentObj]
-                    };
-                }
-                return comment;
-            }));
-            setReplyingTo(null);
-        } else {
-            setComments([...comments, newCommentObj]);
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
+            alert('Please login to comment');
+            return;
         }
+        const user = JSON.parse(userStr);
+        console.log('Submitting comment as user:', user._id, 'Content:', newComment);
 
-        setNewComment('');
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/posts/${id}/comments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: user._id,
+                    content: newComment,
+                    parent_comment_id: replyingTo ? replyingTo.id : null
+                })
+            });
 
-        // Update comment count on post
-        setPost(prev => ({
-            ...prev,
-            comments: prev.comments + 1
-        }));
+            if (response.ok) {
+                await fetchComments(); // Re-fetch comments to show new one
+                setNewComment('');
+                setReplyingTo(null);
+                setPost(prev => ({ ...prev, comments: (prev.comments || 0) + 1 }));
+            } else {
+                const errorData = await response.json();
+                alert(`Failed to post comment: ${errorData.message}`);
+            }
+        } catch (err) {
+            console.error('Error submitting comment:', err);
+            alert('Error submitting comment. Please try again.');
+        }
     };
 
     if (!post) return <div style={{ color: 'white', padding: 20 }}>Loading...</div>;
@@ -130,10 +173,10 @@ export default function PostDetail() {
             {/* Main Post */}
             <div className="glass-card" style={{ padding: 20, marginBottom: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 15 }}>
-                    <img src={post.avatar} alt={post.author} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.3)' }} />
+                    <img src={post.user_id?.profile_picture || '/assets/pfp1.jpg'} alt={post.user_id?.name} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.3)' }} />
                     <div>
-                        <div style={{ fontWeight: 'bold', fontSize: 16 }}>{post.author}</div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{post.time}</div>
+                        <div style={{ fontWeight: 'bold', fontSize: 16 }}>{post.user_id?.name || 'Unknown'}</div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{new Date(post.date_posted).toLocaleString()}</div>
                     </div>
                 </div>
 
@@ -156,7 +199,7 @@ export default function PostDetail() {
                             transition: 'color 0.2s'
                         }}
                     >
-                        <FaHeart /> {post.likes}
+                        <FaHeart /> {post.likes?.length || 0}
                     </button>
                     <button style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
                         <FaComment /> {comments.length}
@@ -229,7 +272,7 @@ export default function PostDetail() {
                 alignItems: 'center',
                 zIndex: 100
             }}>
-                <img src="/assets/giselle.jpg" alt="User" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                <img src={JSON.parse(localStorage.getItem('user'))?.profile_picture || "/assets/pfp1.jpg"} alt="User" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
                 <div style={{
                     flex: 1,
                     background: 'rgba(255,255,255,0.1)',

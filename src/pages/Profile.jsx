@@ -12,6 +12,7 @@ export default function Profile() {
   const [showSettings, setShowSettings] = useState(false);
   const [activeTab, setActiveTab] = useState('posts');
   const [formData, setFormData] = useState({});
+  const [requests, setRequests] = useState([]);
 
   const { id } = useParams();
 
@@ -39,6 +40,20 @@ export default function Profile() {
         if (foundUser) {
           setUser(foundUser);
           setFormData(foundUser);
+
+          // Fetch user's requests
+          const reqResponse = await fetch(`${API_BASE_URL}/api/users/${userId}/requests`);
+          if (reqResponse.ok) {
+            const userRequests = await reqResponse.json();
+            setRequests(userRequests);
+          }
+
+          // Fetch user's posts
+          const postResponse = await fetch(`${API_BASE_URL}/api/users/${userId}/posts`);
+          if (postResponse.ok) {
+            const userPosts = await postResponse.json();
+            setUser(prev => ({ ...prev, posts: userPosts }));
+          }
         }
       } catch (err) {
         console.error('Error fetching user:', err);
@@ -360,9 +375,11 @@ export default function Profile() {
           {activeTab === 'posts' && (
             user.posts && user.posts.length > 0 ? (
               user.posts.map(post => (
-                <div key={post.id} className="glass-card" style={{ padding: 15 }}>
+                <div key={post._id} className="glass-card" style={{ padding: 15 }}>
                   <p style={{ margin: '0 0 10px 0', fontSize: 14 }}>{post.content}</p>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{post.time} • {post.likes} Likes</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+                    {new Date(post.date_posted).toLocaleString()} • {post.likes?.length || 0} Likes
+                  </div>
                 </div>
               ))
             ) : <div style={{ textAlign: 'center', opacity: 0.5, padding: 20 }}>No posts yet</div>
@@ -382,12 +399,24 @@ export default function Profile() {
           )}
 
           {activeTab === 'requests' && (
-            user.requests && user.requests.length > 0 ? (
-              user.requests.map(req => (
-                <div key={req.id} className="glass-card" style={{ padding: 15 }}>
-                  <h4 style={{ margin: '0 0 5px 0' }}>{req.title}</h4>
+            requests && requests.length > 0 ? (
+              requests.map(req => (
+                <div key={req._id} className="glass-card" style={{ padding: 15 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <h4 style={{ margin: '0 0 5px 0' }}>{req.title}</h4>
+                    <span style={{
+                      fontSize: 10,
+                      padding: '2px 8px',
+                      borderRadius: 10,
+                      background: req.urgency === 'Red' ? '#dc3545' : req.urgency === 'Yellow' ? '#ffc107' : '#28a745',
+                      color: req.urgency === 'Yellow' ? 'black' : 'white'
+                    }}>
+                      {req.urgency === 'Green' ? 'Low Urgency' : req.urgency === 'Yellow' ? 'Moderate Urgency' : 'High Urgency'}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 13, margin: '0 0 10px 0', opacity: 0.8 }}>{req.description}</p>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                    Amount Needed: ₱{req.amount.toLocaleString()}
+                    Type: {req.request_type} • {req.request_type === 'Cash' ? `₱${req.min_donation} - ₱${req.max_donation}` : req.location}
                   </div>
                 </div>
               ))
